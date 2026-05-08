@@ -1,0 +1,567 @@
+basePath: /api/v1
+definitions:
+  controller.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/controller.UserResponse'
+    type: object
+  controller.DeploymentEventResponse:
+    properties:
+      container_name:
+        example: landing-page-app
+        type: string
+      domain:
+        example: landing.localhost
+        type: string
+      image_name:
+        example: landing-page
+        type: string
+      level:
+        example: info
+        type: string
+      message:
+        example: build completed
+        type: string
+      stage:
+        example: deploy
+        type: string
+    type: object
+  controller.DeploymentResponse:
+    properties:
+      error:
+        example: 'rpc error: code = Internal desc = deploy failed'
+        type: string
+      events:
+        items:
+          $ref: '#/definitions/controller.DeploymentEventResponse'
+        type: array
+      operation:
+        example: deploy
+        type: string
+      repository_id:
+        example: repo_123
+        type: string
+    type: object
+  controller.ErrorResponse:
+    properties:
+      error:
+        example: invalid credentials
+        type: string
+    type: object
+  controller.GitHubTokenStatusResponse:
+    properties:
+      connected:
+        example: true
+        type: boolean
+    type: object
+  controller.LoginRequest:
+    properties:
+      email:
+        example: alice@example.com
+        type: string
+      password:
+        example: supersecret123
+        type: string
+    type: object
+  controller.RegisterRequest:
+    properties:
+      email:
+        example: alice@example.com
+        type: string
+      name:
+        example: Alice Doe
+        type: string
+      password:
+        example: supersecret123
+        type: string
+    type: object
+  controller.RepositoryResponse:
+    properties:
+      app_type:
+        example: auto
+        type: string
+      branch:
+        example: main
+        type: string
+      created_at:
+        example: "2026-04-17T12:00:00Z"
+        type: string
+      description:
+        example: Marketing landing
+        type: string
+      domain:
+        example: landing.example.com
+        type: string
+      id:
+        example: repo_123
+        type: string
+      image_name:
+        example: landing-page
+        type: string
+      name:
+        example: landing-page
+        type: string
+      node_version:
+        example: "20"
+        type: string
+      provider:
+        example: github
+        type: string
+      repo_url:
+        example: https://github.com/acme/landing-page
+        type: string
+      updated_at:
+        example: "2026-04-17T12:00:00Z"
+        type: string
+    type: object
+  controller.SaveGitHubTokenRequest:
+    properties:
+      access_token:
+        example: gho_xxxxxxxxxxxx
+        type: string
+    type: object
+  controller.SaveRepositoryRequest:
+    properties:
+      app_type:
+        example: auto
+        type: string
+      branch:
+        example: main
+        type: string
+      description:
+        example: Marketing landing
+        type: string
+      domain:
+        example: landing.example.com
+        type: string
+      image_name:
+        example: landing-page
+        type: string
+      name:
+        example: landing-page
+        type: string
+      node_version:
+        example: "20"
+        type: string
+      provider:
+        example: github
+        type: string
+      repo_url:
+        example: https://github.com/acme/landing-page
+        type: string
+    type: object
+  controller.UserResponse:
+    properties:
+      created_at:
+        example: "2026-04-17T12:00:00Z"
+        type: string
+      email:
+        example: alice@example.com
+        type: string
+      github_connected:
+        example: true
+        type: boolean
+      id:
+        example: usr_123
+        type: string
+      name:
+        example: Alice Doe
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for authentication and user repository management.
+  title: Repository Controller API
+  version: "1.0"
+paths:
+  /auth/github-token:
+    delete:
+      description: Remove the stored GitHub OAuth token for the current authenticated
+        user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GitHubTokenStatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete GitHub token
+      tags:
+      - auth
+    get:
+      description: Return whether the current authenticated user has a GitHub OAuth
+        token stored in backend
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GitHubTokenStatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: GitHub token status
+      tags:
+      - auth
+    put:
+      consumes:
+      - application/json
+      description: Save or replace the GitHub OAuth token for the current authenticated
+        user
+      parameters:
+      - description: GitHub token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.SaveGitHubTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GitHubTokenStatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Save GitHub token
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Return current authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Current user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account and return JWT token
+      parameters:
+      - description: Registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/controller.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      summary: Register user
+      tags:
+      - auth
+  /repositories:
+    get:
+      description: List repositories for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/controller.RepositoryResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List repositories
+      tags:
+      - repositories
+    post:
+      consumes:
+      - application/json
+      description: Add a repository for the authenticated user
+      parameters:
+      - description: Repository payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.SaveRepositoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/controller.RepositoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create repository
+      tags:
+      - repositories
+  /repositories/{id}:
+    delete:
+      description: Delete repository for the authenticated user
+      parameters:
+      - description: Repository ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete repository
+      tags:
+      - repositories
+    get:
+      description: Get one repository for the authenticated user
+      parameters:
+      - description: Repository ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.RepositoryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get repository
+      tags:
+      - repositories
+    put:
+      consumes:
+      - application/json
+      description: Update repository for the authenticated user
+      parameters:
+      - description: Repository ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Repository payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.SaveRepositoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.RepositoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update repository
+      tags:
+      - repositories
+  /repositories/{id}/bootstrap:
+    post:
+      description: Trigger bootstrap flow for the authenticated user's repository
+        via deploy-service-go
+      parameters:
+      - description: Repository ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+        "504":
+          description: Gateway Timeout
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+      security:
+      - BearerAuth: []
+      summary: Bootstrap repository
+      tags:
+      - deployments
+  /repositories/{id}/deploy:
+    post:
+      description: Trigger deployment for the authenticated user's repository via
+        deploy-service-go
+      parameters:
+      - description: Repository ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+        "504":
+          description: Gateway Timeout
+          schema:
+            $ref: '#/definitions/controller.DeploymentResponse'
+      security:
+      - BearerAuth: []
+      summary: Deploy repository
+      tags:
+      - deployments
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
