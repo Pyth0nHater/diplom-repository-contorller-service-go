@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "id": "usr_fac97f7c0d33b1c412ba246c",
+      "name": "Claude",
+      "email": "claude@test.com",
+      "password_hash": "$2a$10$JAXeXMUuWu2JaLtLj87uxeQVqon9KMKQP3yEsKiPojeB/e.bIisSS",
+      "created_at": "2026-05-08T15:02:34.565173Z"
+    }
+  ],
+  "repositories": []
+}
