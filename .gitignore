@@ -1,2 +1,4 @@
 /.qodo
 /data/repositories.json
+.env
+.env.local
