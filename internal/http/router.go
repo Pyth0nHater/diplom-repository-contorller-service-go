@@ -14,6 +14,7 @@ func NewRouter(
 	authController *controller.AuthController,
 	repoController *controller.RepositoryController,
 	deploymentController *controller.DeploymentController,
+	webhookController *controller.WebhookController,
 	authService *service.AuthService,
 ) *gin.Engine {
 	router := gin.Default()
@@ -37,6 +38,9 @@ func NewRouter(
 	repoGroup.DELETE("/:id", repoController.Delete)
 	repoGroup.POST("/:id/deploy", deploymentController.Deploy)
 	repoGroup.POST("/:id/bootstrap", deploymentController.BootstrapRepository)
+
+	api.POST("/webhook/github", webhookController.GithubPush)
+	api.POST("/webhook/deploy", webhookController.DeployByToken)
 
 	return router
 }

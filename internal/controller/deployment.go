@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"repository-contorller-service-go/internal/middleware"
@@ -135,7 +137,8 @@ func (d *DeploymentController) run(c *gin.Context, operation string) {
 		return nil
 	}
 
-	if streamErr := streamFn(writeEvent); streamErr != nil {
+	streamErr := streamFn(writeEvent)
+	if streamErr != nil {
 		line, _ := json.Marshal(DeploymentEventResponse{
 			Level:        "error",
 			Stage:        "error",
@@ -145,6 +148,17 @@ func (d *DeploymentController) run(c *gin.Context, operation string) {
 		})
 		fmt.Fprintf(c.Writer, "%s\n", line)
 		c.Writer.Flush()
+		return
+	}
+
+	if operation == "bootstrap" {
+		go func() {
+			if err := d.deploymentService.SetupCISecrets(context.Background(), userID, repoID); err != nil {
+				log.Printf("setup CI secrets for repo %s: %v", repoID, err)
+			} else {
+				log.Printf("CI secrets configured for repo %s", repoID)
+			}
+		}()
 	}
 }
 

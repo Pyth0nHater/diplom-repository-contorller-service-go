@@ -27,9 +27,12 @@ type UserRepository interface {
 type ClientRepositoryRepository interface {
 	CreateRepository(repo model.ClientRepository) error
 	ListRepositoriesByUser(userID string) ([]model.ClientRepository, error)
+	ListAllRepositories() ([]model.ClientRepository, error)
 	GetRepositoryByID(userID, repoID string) (model.ClientRepository, error)
 	UpdateRepository(repo model.ClientRepository) error
 	DeleteRepository(userID, repoID string) error
+	FindRepositoriesByRepoURL(repoURL string) ([]model.ClientRepository, error)
+	FindRepositoryByDeployToken(token string) (model.ClientRepository, error)
 }
 
 type FileStore struct {
@@ -121,6 +124,14 @@ func (s *FileStore) CreateRepository(repo model.ClientRepository) error {
 	return s.saveLocked()
 }
 
+func (s *FileStore) ListAllRepositories() ([]model.ClientRepository, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]model.ClientRepository, len(s.data.Repositories))
+	copy(result, s.data.Repositories)
+	return result, nil
+}
+
 func (s *FileStore) ListRepositoriesByUser(userID string) ([]model.ClientRepository, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -170,6 +181,32 @@ func (s *FileStore) UpdateRepository(repo model.ClientRepository) error {
 	}
 
 	return ErrNotFound
+}
+
+func (s *FileStore) FindRepositoryByDeployToken(token string) (model.ClientRepository, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, repo := range s.data.Repositories {
+		if repo.DeployToken == token {
+			return repo, nil
+		}
+	}
+	return model.ClientRepository{}, ErrNotFound
+}
+
+func (s *FileStore) FindRepositoriesByRepoURL(repoURL string) ([]model.ClientRepository, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	normalized := strings.TrimSuffix(strings.ToLower(repoURL), ".git")
+	result := make([]model.ClientRepository, 0)
+	for _, repo := range s.data.Repositories {
+		if strings.TrimSuffix(strings.ToLower(repo.RepoURL), ".git") == normalized {
+			result = append(result, repo)
+		}
+	}
+	return result, nil
 }
 
 func (s *FileStore) DeleteRepository(userID, repoID string) error {

@@ -13,7 +13,8 @@ import (
 )
 
 type RepositoryController struct {
-	repoService *service.RepositoryService
+	repoService        *service.RepositoryService
+	deploymentService  *service.DeploymentService
 }
 
 type SaveRepositoryRequest struct {
@@ -43,8 +44,8 @@ type RepositoryResponse struct {
 	UpdatedAt   string `json:"updated_at" example:"2026-04-17T12:00:00Z"`
 }
 
-func NewRepositoryController(repoService *service.RepositoryService) *RepositoryController {
-	return &RepositoryController{repoService: repoService}
+func NewRepositoryController(repoService *service.RepositoryService, deploymentService *service.DeploymentService) *RepositoryController {
+	return &RepositoryController{repoService: repoService, deploymentService: deploymentService}
 }
 
 // Create godoc
@@ -190,6 +191,9 @@ func (r *RepositoryController) Update(c *gin.Context) {
 func (r *RepositoryController) Delete(c *gin.Context) {
 	userID := c.GetString(middleware.UserIDContextKey)
 	repoID := c.Param("id")
+
+	// stop and remove the container before deleting the record
+	_ = r.deploymentService.Undeploy(c.Request.Context(), userID, repoID)
 
 	if err := r.repoService.Delete(userID, repoID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"io"
+	"strings"
 	"time"
 
 	"repository-contorller-service-go/internal/repository"
@@ -13,10 +14,11 @@ import (
 )
 
 type DeploymentService struct {
-	repos   repository.ClientRepositoryRepository
-	users   repository.UserRepository
-	client  deploypb.DeployServiceClient
-	timeout time.Duration
+	repos        repository.ClientRepositoryRepository
+	users        repository.UserRepository
+	client       deploypb.DeployServiceClient
+	timeout      time.Duration
+	deployAPIURL string
 }
 
 type DeploymentResult struct {
@@ -36,13 +38,44 @@ type DeploymentEvent struct {
 	Domain        string
 }
 
-func NewDeploymentService(repos repository.ClientRepositoryRepository, users repository.UserRepository, client deploypb.DeployServiceClient, timeout time.Duration) *DeploymentService {
+func NewDeploymentService(repos repository.ClientRepositoryRepository, users repository.UserRepository, client deploypb.DeployServiceClient, timeout time.Duration, deployAPIURL string) *DeploymentService {
 	return &DeploymentService{
-		repos:   repos,
-		users:   users,
-		client:  client,
-		timeout: timeout,
+		repos:        repos,
+		users:        users,
+		client:       client,
+		timeout:      timeout,
+		deployAPIURL: deployAPIURL,
 	}
+}
+
+// SetupCISecrets sets DEPLOY_TOKEN and DEPLOY_API_URL as GitHub Actions secrets on the repo.
+func (s *DeploymentService) SetupCISecrets(ctx context.Context, userID, repoID string) error {
+	repo, err := s.repos.GetRepositoryByID(userID, repoID)
+	if err != nil {
+		return err
+	}
+	user, err := s.users.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+	if user.GitHubAccessToken == "" {
+		return ErrGitHubTokenNotConfigured
+	}
+
+	secrets := map[string]string{
+		"DEPLOY_TOKEN":   repo.DeployToken,
+		"DEPLOY_API_URL": strings.TrimRight(s.deployAPIURL, "/") + "/api/v1/webhook/deploy",
+	}
+	return SetGitHubRepoSecrets(ctx, user.GitHubAccessToken, repo.RepoURL, secrets)
+}
+
+func (s *DeploymentService) Undeploy(ctx context.Context, userID, repoID string) error {
+	repo, err := s.repos.GetRepositoryByID(userID, repoID)
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Undeploy(ctx, &deploypb.UndeployRequest{ImageName: repo.ImageName})
+	return err
 }
 
 func (s *DeploymentService) Deploy(ctx context.Context, userID, repoID string) (DeploymentResult, error) {

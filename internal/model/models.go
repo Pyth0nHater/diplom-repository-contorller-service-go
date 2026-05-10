@@ -23,6 +23,7 @@ type ClientRepository struct {
 	AppType     string    `json:"app_type,omitempty"`
 	NodeVersion string    `json:"node_version,omitempty"`
 	Description string    `json:"description"`
+	DeployToken string    `json:"deploy_token,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

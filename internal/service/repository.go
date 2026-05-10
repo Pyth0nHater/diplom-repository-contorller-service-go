@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"net/url"
 	"strings"
@@ -37,11 +39,25 @@ func (s *RepositoryService) Create(userID string, input SaveRepositoryInput) (mo
 		return model.ClientRepository{}, err
 	}
 
+	token, err := generateDeployToken()
+	if err != nil {
+		return model.ClientRepository{}, err
+	}
+	repo.DeployToken = token
+
 	if err := s.repos.CreateRepository(repo); err != nil {
 		return model.ClientRepository{}, err
 	}
 
 	return repo, nil
+}
+
+func generateDeployToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 func (s *RepositoryService) List(userID string) ([]model.ClientRepository, error) {
